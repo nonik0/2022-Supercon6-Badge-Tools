@@ -9,9 +9,10 @@ mov r8, 0   ; Init index counter
 mov r1, 0   ;  |
 
 main:
-gosub inc_ani    ; Increment animation
-gosub drawframe  ; Start drawing routine
-gosub delay      ; delay a bit
+gosub inc_ani       ; Increment animation
+gosub drawframe     ; Start drawing routine
+gosub delay         ; delay a bit
+gosub delayautooff  ; delay auto-off
 goto main
 
 ; count to 8
@@ -29,6 +30,11 @@ skip z,1
 jr -9
 
 ret r0, 0   ; Badge will halt on an un-called return, ending program
+
+delayautooff:
+mov r0, 0xF
+mov [0xF9], r0
+ret r0, 0
 
 drawframe:
 mov pch, 2  ; Set high jump coord
