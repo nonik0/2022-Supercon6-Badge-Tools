@@ -8,33 +8,43 @@ mov [0xF1], r0
 mov r8, 0   ; Init index counter
 mov r1, 0   ;  |
 
+mov r2, 0b0001 ; Store input bit 0 mask
+
 main:
+gosub disableoutput ; Disable output while input bit 0 is low
 gosub inc_ani       ; Increment animation
 gosub drawframe     ; Start drawing routine
 gosub delay         ; delay a bit
 gosub delayautooff  ; delay auto-off
 goto main
 
-; count to 8
-delay:
-mov r0, 0
-mov r1, 0
-inc r0
-cp r0,8
-skip z,1
-jr -4
-inc r1
-mov r0, r1
-cp r0, 8
-skip z,1
-jr -9
-
-ret r0, 0   ; Badge will halt on an un-called return, ending program
-
-delayautooff:
-mov r0, 0xF
-mov [0xF9], r0
+disableoutput:
+and IN, r2 ; return if input bit 0 is high
+skip z, 1
 ret r0, 0
+
+mov r0, 4   ; go to empty page
+mov [0xF0], r0 
+mov r0, [0xF3] ; turn off status leds
+or r0, 0b1100
+mov [0xF3], r0
+
+disableoutput_loop:
+and IN, r2
+skip nz, 1
+jr disableoutput_loop
+
+mov r0, 2   ; go to display page
+mov [0xF0], r0
+mov r0, [0xF3] ; turn on status leds
+and r0, 0b0011
+mov [0xF3], r0
+
+inc_ani:    ; Increment animation index
+inc r8      ;
+inc r8      ;
+mov r1, r8  ; Copy R8 to R1
+ret r0, 0   ; Return from sub
 
 drawframe:
 mov pch, 2  ; Set high jump coord
@@ -52,25 +62,31 @@ inc jsr     ; Inc lowest bit reads next nibble
 mov [r4:r5], r0 ; Draw left-side nibble
 inc r7      ; Inc counter
 mov r0, r7  ; Move counter, can only compare to R0
-
-; cp r0, 8      ; Check if we've looped 8 times
-; skip nz, 1    ; Skip next 1 lines if true
-; ; inc pcm     ; Move to next row (NOTE: SAY WHAT!? THIS IS NEEDED FOR THE EMULATOR, BUT NOT FOR THE REAL BADGE)
-; inc r9      ; Instead of above, just do some random instruction that we can skip
-
-no_page_inc:
-cp r0, 0    ; Check if we've looped 16 times
+cp r0, 0    ; Check if we've looped 16 times (overflow to 0)
 skip z, 3   ; Skip next 3 lines if true
 inc r5      ; Move to next row
 inc jsr     ; Read next nibble
 jr drawframe_loop       ; Loop around
 ret r0, 0   ; Return from sub
 
-inc_ani:    ; Increment animation index
-inc r8      ;
-inc r8      ;
-mov r1, r8  ; Copy R8 to R1
-ret r0, 0   ; Return from sub
+; count to 8
+delay:
+mov r0, 0
+mov r1, 0
+inc r0
+cp r0,8
+skip z,1
+jr -4
+inc r1
+mov r0, r1
+cp r0, 8
+skip z,1
+jr -9
+
+delayautooff:
+mov r0, 0b1111
+mov [0xF9], r0
+ret r0, 0
 
 org 0x200
 walkgfx:    ; Graphics data
